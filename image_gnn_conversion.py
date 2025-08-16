@@ -83,6 +83,6 @@ def image_to_graph(image_path, patch_size=16, embed_dim=768, k=9):
     x = torch.tensor(node_features, dtype=torch.float)
 
     # Convert positions to tensor
-    pos = torch.tensor(pos, dtype=torch.float)
+    pos = torch.tensor(node_coords, dtype=torch.float)
 
     return x, pos, edge_index
