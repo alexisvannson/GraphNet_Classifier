@@ -48,8 +48,8 @@ def image_to_graph(image_path, patch_size=16, embed_dim=768, k=9):
     - x (torch.Tensor): Matrice des caractéristiques des nœuds de taille (num_patches, embed_dim).
     Chaque ligne de cette matrice représente un patch de l'image. Les caractéristiques de chaque patch
     sont extraites à partir des valeurs RGB des pixels dans ce patch.
-    - node_coords (torch.Tensor): Positions des nœuds dans la grille de l'image originale.
-    - edge2nodes (torch.Tensor): Liste des arêtes au format COO.
+    - pos (torch.Tensor): Positions des nœuds dans la grille de l'image originale.
+    - edge_index (torch.Tensor): Liste des arêtes au format COO.
     """
     # Charger l'image
     image = Image.open(image_path)
