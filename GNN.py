@@ -343,15 +343,15 @@ class GraphNet(nn.Module):
 class LinearClassifier(nn.Module):
     def __init__(self):
         super(LinearClassifier, self).__init__()
-        self.fc1 = nn.Linear(in_features=196*128, out_features=128)  # Adjusted in_features to 128
-        self.fc2 = nn.Linear(in_features=128, out_features=32)   # Adjusted out_features for better processing
-        self.fc3 = nn.Linear(in_features=32, out_features=2)    # Final output for 2 classes
-        self.relu = nn.ReLU()  # ReLU should be used as a function, not as a module
+        self.fc1 = nn.Linear(in_features=196*128, out_features=128)
+        self.fc2 = nn.Linear(in_features=128, out_features=32)
+        self.fc3 = nn.Linear(in_features=32, out_features=2)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         #x = x.view(x.size(0), -1)  # Flatten the tensor while keeping the batch dimension
-        x = self.relu(self.fc1(x))  # Apply ReLU as a function
-        x = self.relu(self.fc2(x))  # Apply ReLU as a function
+        x = self.relu(self.fc1(x)) 
+        x = self.relu(self.fc2(x))  
         x = torch.sigmoid(self.fc3(x))  # Use sigmoid for binary classification
         return x
     
@@ -366,4 +366,3 @@ class CombinedModel(nn.Module):
         x = x.flatten() 
         x = self.classifier(x)
         return x
-
