@@ -1,0 +1,10 @@
+torch
+torchvision
+matplotlib
+numpy
+Pillow
+networkx
+scipy
+torch-scatter
+torch-sparse
+torch-geometric

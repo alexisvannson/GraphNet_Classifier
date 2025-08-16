@@ -12,14 +12,14 @@ def image_to_patches(image, patch_size):
         return patches
 
 # Classe pour extraire les vecteurs de caractéristiques des patches
-    class PatchEmbedding(nn.Module):
-        def __init__(self, patch_size, in_channels=3, embed_dim=768):
-            super().__init__()
-            self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
+class PatchEmbedding(nn.Module):
+    def __init__(self, patch_size, in_channels=3, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
 
-        def forward(self, x):
-            x = self.proj(x).flatten(2).transpose(1, 2)
-            return x
+    def forward(self, x):
+        x = self.proj(x).flatten(2).transpose(1, 2)
+        return x
  
 # Fonction pour construire la matrice d'adjacence
 def build_graph(node_features, k=9):
@@ -233,4 +233,39 @@ def image_to_graph_knn(image_path, patch_size=16, embed_dim=768, k=9):
     # Convert positions to tensor
     pos = torch.tensor(node_coords, dtype=torch.float)
 
+    return x, pos, edge_index
+
+def image_to_graph_pixel(image_path, resize_value=128):
+    # Load and transform image
+    image = Image.open(image_path).convert('RGB')
+    transform = T.Compose([
+        T.Resize((resize_value, resize_value)),
+        T.ToTensor()
+    ])
+    tab = transform(image).numpy()  # shape: (C, H, W)
+    
+    C, H, W = tab.shape
+    
+    # Node features: flatten pixel values
+    x = torch.tensor(tab.reshape(C, H*W).T, dtype=torch.float)  # shape: (num_nodes, num_features)
+    
+    # Node positions: (row, col) coordinates
+    pos = torch.tensor([[i // W, i % W] for i in range(H*W)], dtype=torch.float)
+    
+    # Edge index: connect each pixel to its 4 neighbors (up, down, left, right)
+    edges = []
+    for row in range(H):
+        for col in range(W):
+            idx = row * W + col
+            if row > 0:        # up
+                edges.append([idx, (row-1)*W + col])
+            if row < H-1:      # down
+                edges.append([idx, (row+1)*W + col])
+            if col > 0:        # left
+                edges.append([idx, row*W + (col-1)])
+            if col < W-1:      # right
+                edges.append([idx, row*W + (col+1)])
+    
+    edge_index = torch.tensor(edges, dtype=torch.long).T  # shape: (2, num_edges)
+    
     return x, pos, edge_index
