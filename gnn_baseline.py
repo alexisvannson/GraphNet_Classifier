@@ -15,10 +15,11 @@ from torch_geometric.nn import MetaLayer
 from typing import Union
 import torchvision.transforms as T
 from torch import Tensor
+from image_gnn_conversion import image_to_graph
 
 # Remove duplicate imports
 # from GNN import MLP, EdgeProcessor, NodeProcessor, GraphProcessor, GraphNet, GraphNetClassifier, LinearClassifier
-#from image_gnn_conversion import image_to_graph
+
 
 
 class CustomDataset(Dataset):
@@ -31,88 +32,6 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         image_path, label = self.dataset.imgs[idx]  # Access the image file path
         return image_path, label
-
-def image_to_graph(image_path, patch_size=16, embed_dim=768, k=9):
-    """
-    Convertit une image en  graphe où chaque nœud représente un patch de l'image.
-    Chaque nœud contient un vecteur de caractéristiques dérivé du patch, et des arêtes sont formées
-    en fonction de la similarité de ces vecteurs de caractéristiques avec l'algorithme knn
-
-    Paramètres:
-    - image_path (str): Chemin vers l'image d'entrée.
-    - patch_size (int): Taille des patches pour diviser l'image. La valeur par défaut est 16.
-    - embed_dim (int): Dimension du vecteur d'embedding pour chaque patch. La valeur par défaut est 768.
-    - k (int): Nombre de voisins les plus proches pour connecter chaque nœud dans le graphe. La valeur par défaut est 9.
-
-    Retourne:
-    - x (torch.Tensor): Matrice des caractéristiques des nœuds de taille (num_patches, embed_dim).
-    Chaque ligne de cette matrice représente un patch de l'image. Les caractéristiques de chaque patch
-    sont extraites à partir des valeurs RGB des pixels dans ce patch.
-    - node_coords (torch.Tensor): Positions des nœuds dans la grille de l'image originale.
-    - edge2nodes (torch.Tensor): Liste des arêtes au format COO.
-    """
-    # Charger l'image
-    image = Image.open(image_path)
-
-    # Prétraiter l'image
-    transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor()
-    ])
-    image = transform(image).unsqueeze(0)
-
-    # Fonction pour diviser l'image en patches
-    def image_to_patches(image, patch_size):
-        patches = image.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
-        patches = patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(image.size(0), -1, 3, patch_size, patch_size)
-        return patches
-
-    # Diviser l'image en patches
-    patches = image_to_patches(image, patch_size)
-
-    # Classe pour extraire les vecteurs de caractéristiques des patches
-    class PatchEmbedding(nn.Module):
-        def __init__(self, patch_size, in_channels=3, embed_dim=768):
-            super().__init__()
-            self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
-
-        def forward(self, x):
-            x = self.proj(x).flatten(2).transpose(1, 2)
-            return x
-
-    # Extraire les vecteurs de caractéristiques des patches
-    patch_embedding = PatchEmbedding(patch_size, embed_dim=embed_dim)
-    node_features = patch_embedding(image)
-    node_features = node_features.squeeze(0).detach().numpy()
-
-    # Générer les positions des nœuds
-    num_patches_per_row = int(image.size(2) / patch_size)
-    node_coords = np.array([(i // num_patches_per_row, i % num_patches_per_row) for i in range(num_patches_per_row * num_patches_per_row)])
-
-    # Fonction pour construire la matrice d'adjacence
-    def build_graph(node_features, k=9):
-        tree = cKDTree(node_features)
-        adj_matrix = np.zeros((node_features.shape[0], node_features.shape[0]))
-        for i in range(node_features.shape[0]):
-            dists, indices = tree.query(node_features[i], k=k+1)  # k+1 car le voisin le plus proche est le nœud lui-même
-            adj_matrix[i, indices[1:]] = 1  # sauter le premier index car c'est le nœud lui-même
-        return adj_matrix
-
-    # Construire le graphe
-    adj_matrix = build_graph(node_features, k)
-    graph = nx.from_numpy_array(adj_matrix)
-
-    # Convertir la matrice d'adjacence en edge2nodes
-    edge2nodes = np.array(list(graph.edges)).T
-    edge2nodes = torch.tensor(edge2nodes, dtype=torch.long)
-
-    # Convertir les caractéristiques des nœuds en tensor
-    x = torch.tensor(node_features, dtype=torch.float)
-
-    # Convertir les positions en tensor
-    node_coords = torch.tensor(node_coords, dtype=torch.float)
-
-    return x, node_coords, edge2nodes
 
 
 
