@@ -30,13 +30,99 @@ def build_graph(node_features, k=9):
         adj_matrix[i, indices[1:]] = 1  # sauter le premier index car c'est le nœud lui-même
     return adj_matrix
 
-def image_to_graph_pixel(image_path):
-        image = Image.open(image_path)
-        transform = T.Compose([
+def image_to_graph_knn(image_path, patch_size=16, embed_dim=768, k=9):
+    """
+    Convertit une image en  graphe où chaque nœud représente un patch de l'image.
+    Chaque noeud contient un vecteur de caractéristiques dérivé du patch, et des arêtes sont formées
+    en fonction de la similarité de ces vecteurs de caractéristiques avec l'algorithme knn
+
+    Paramètres:
+    - image_path (str): Chemin vers l'image d'entrée.
+    - patch_size (int): Taille des patches pour diviser l'image. La valeur par défaut est 16.
+    - embed_dim (int): Dimension du vecteur d'embedding pour chaque patch. La valeur par défaut est 768.
+    - k (int): Nombre de voisins les plus proches pour connecter chaque nœud dans le graphe. La valeur par défaut est 9.
+
+    Retourne:
+    - x (torch.Tensor): Matrice des caractéristiques des nœuds de taille (num_patches, embed_dim).
+    Chaque ligne de cette matrice représente un patch de l'image. Les caractéristiques de chaque patch
+    sont extraites à partir des valeurs RGB des pixels dans ce patch.
+    - pos (torch.Tensor): Positions des nœuds dans la grille de l'image originale.
+    - edge_index (torch.Tensor): Liste des arêtes au format COO.
+    """
+    # Charger l'image
+    image = Image.open(image_path)
+
+    # Prétraiter l'image
+    transform = T.Compose([
         T.Resize((224, 224)),
-        T.ToTensor() ])
-        image = transform(image).unsqueeze(0)
-        _write_numpy2d_to_file_png(tab, filename)
+        T.ToTensor()
+    ])
+    image = transform(image).unsqueeze(0)
+    patches = image_to_patches(image, patch_size)
+
+    # Extraire les vecteurs de caractéristiques des patches
+    patch_embedding = PatchEmbedding(patch_size, embed_dim=embed_dim)
+    node_features = patch_embedding(image)
+    node_features = node_features.squeeze(0).detach().numpy()
+
+    # Générer les positions des nœuds
+    num_patches_per_row = int(image.size(2) / patch_size)
+    node_coords = np.array([(i // num_patches_per_row, i % num_patches_per_row) for i in range(num_patches_per_row * num_patches_per_row)])
+
+    # Construire le graphe
+    adj_matrix = build_graph(node_features, k)
+    graph = nx.from_numpy_array(adj_matrix)
+
+    # Convert adjacency matrix to edge_index
+    edge_index = np.array(list(graph.edges)).T
+    edge_index = torch.tensor(edge_index, dtype=torch.long)
+
+    # Convert node features to tensor
+    x = torch.tensor(node_features, dtype=torch.float)
+
+    # Convert positions to tensor
+    pos = torch.tensor(node_coords, dtype=torch.float)
+
+    return x, pos, edge_index
+
+def image_to_graph_pixel(image_path, resize_value=128):
+    # Load and transform image
+    image = Image.open(image_path).convert('RGB')
+    transform = T.Compose([
+        T.Resize((resize_value, resize_value)),
+        T.ToTensor()
+    ])
+    tab = transform(image).numpy()  # shape: (C, H, W)
+    
+    C, H, W = tab.shape
+    
+    # Node features: flatten pixel values
+    x = torch.tensor(tab.reshape(C, H*W).T, dtype=torch.float)  # shape: (num_nodes, num_features)
+    
+    # Node positions: (row, col) coordinates
+    pos = torch.tensor([[i // W, i % W] for i in range(H*W)], dtype=torch.float)
+    
+    # Edge index: connect each pixel to its 4 neighbors (up, down, left, right)
+    edges = []
+    for row in range(H):
+        for col in range(W):
+            idx = row * W + col
+            if row > 0:        # up
+                edges.append([idx, (row-1)*W + col])
+            if row < H-1:      # down
+                edges.append([idx, (row+1)*W + col])
+            if col > 0:        # left
+                edges.append([idx, row*W + (col-1)])
+            if col < W-1:      # right
+                edges.append([idx, row*W + (col+1)])
+    
+    edge_index = torch.tensor(edges, dtype=torch.long).T  # shape: (2, num_edges)
+    
+    return x, pos, edge_index
+
+
+
+
 
 def _transform_numpy2d_to_hsv(tab):
     """Non applicable.
@@ -179,93 +265,3 @@ def _write_numpy2d_to_file_png(tab, filename):
         matplotlib.pyplot.close(fig)
  
     return
-
-def image_to_graph_knn(image_path, patch_size=16, embed_dim=768, k=9):
-    """
-    Convertit une image en  graphe où chaque nœud représente un patch de l'image.
-    Chaque noeud contient un vecteur de caractéristiques dérivé du patch, et des arêtes sont formées
-    en fonction de la similarité de ces vecteurs de caractéristiques avec l'algorithme knn
-
-    Paramètres:
-    - image_path (str): Chemin vers l'image d'entrée.
-    - patch_size (int): Taille des patches pour diviser l'image. La valeur par défaut est 16.
-    - embed_dim (int): Dimension du vecteur d'embedding pour chaque patch. La valeur par défaut est 768.
-    - k (int): Nombre de voisins les plus proches pour connecter chaque nœud dans le graphe. La valeur par défaut est 9.
-
-    Retourne:
-    - x (torch.Tensor): Matrice des caractéristiques des nœuds de taille (num_patches, embed_dim).
-    Chaque ligne de cette matrice représente un patch de l'image. Les caractéristiques de chaque patch
-    sont extraites à partir des valeurs RGB des pixels dans ce patch.
-    - pos (torch.Tensor): Positions des nœuds dans la grille de l'image originale.
-    - edge_index (torch.Tensor): Liste des arêtes au format COO.
-    """
-    # Charger l'image
-    image = Image.open(image_path)
-
-    # Prétraiter l'image
-    transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor()
-    ])
-    image = transform(image).unsqueeze(0)
-    patches = image_to_patches(image, patch_size)
-
-    # Extraire les vecteurs de caractéristiques des patches
-    patch_embedding = PatchEmbedding(patch_size, embed_dim=embed_dim)
-    node_features = patch_embedding(image)
-    node_features = node_features.squeeze(0).detach().numpy()
-
-    # Générer les positions des nœuds
-    num_patches_per_row = int(image.size(2) / patch_size)
-    node_coords = np.array([(i // num_patches_per_row, i % num_patches_per_row) for i in range(num_patches_per_row * num_patches_per_row)])
-
-    # Construire le graphe
-    adj_matrix = build_graph(node_features, k)
-    graph = nx.from_numpy_array(adj_matrix)
-
-    # Convert adjacency matrix to edge_index
-    edge_index = np.array(list(graph.edges)).T
-    edge_index = torch.tensor(edge_index, dtype=torch.long)
-
-    # Convert node features to tensor
-    x = torch.tensor(node_features, dtype=torch.float)
-
-    # Convert positions to tensor
-    pos = torch.tensor(node_coords, dtype=torch.float)
-
-    return x, pos, edge_index
-
-def image_to_graph_pixel(image_path, resize_value=128):
-    # Load and transform image
-    image = Image.open(image_path).convert('RGB')
-    transform = T.Compose([
-        T.Resize((resize_value, resize_value)),
-        T.ToTensor()
-    ])
-    tab = transform(image).numpy()  # shape: (C, H, W)
-    
-    C, H, W = tab.shape
-    
-    # Node features: flatten pixel values
-    x = torch.tensor(tab.reshape(C, H*W).T, dtype=torch.float)  # shape: (num_nodes, num_features)
-    
-    # Node positions: (row, col) coordinates
-    pos = torch.tensor([[i // W, i % W] for i in range(H*W)], dtype=torch.float)
-    
-    # Edge index: connect each pixel to its 4 neighbors (up, down, left, right)
-    edges = []
-    for row in range(H):
-        for col in range(W):
-            idx = row * W + col
-            if row > 0:        # up
-                edges.append([idx, (row-1)*W + col])
-            if row < H-1:      # down
-                edges.append([idx, (row+1)*W + col])
-            if col > 0:        # left
-                edges.append([idx, row*W + (col-1)])
-            if col < W-1:      # right
-                edges.append([idx, row*W + (col+1)])
-    
-    edge_index = torch.tensor(edges, dtype=torch.long).T  # shape: (2, num_edges)
-    
-    return x, pos, edge_index
