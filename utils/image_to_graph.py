@@ -69,4 +69,3 @@ def image_to_graph_pixel(image_path, resize_value=128, diagonals=False):
     edge_index = np.transpose(edges)  # shape: (2, num_edges)
     
     return x, pos, edge_index
-

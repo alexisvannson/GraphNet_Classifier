@@ -43,5 +43,6 @@ class MLP(nn.Module):
                     self.initializer(param)
 
     def forward(self, x: Tensor):
+        x = x.view(x.size(0), -1)  # Flatten: (batch, channels*height*width)
         return self.model(x.float())
 
