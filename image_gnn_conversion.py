@@ -86,7 +86,29 @@ def image_to_graph_knn(image_path, patch_size=16, embed_dim=768, k=9):
     return x, pos, edge_index
 
 def image_to_graph_pixel(image_path, resize_value=128):
-    # Load and transform image
+    """
+    Convert an image into a pixel graph representation.
+
+    Args:
+        image_path (str): Path to the input image file.
+        resize_value (int, optional): Image will be resized to (resize_value x resize_value). Default = 128.
+
+    Returns:
+        x (torch.FloatTensor): 
+            Node features of shape (num_nodes, num_features).  
+            - num_nodes = H * W (pixels)  
+            - num_features = C (channels, e.g. 3 for RGB)  
+            - Each row = pixel values (R,G,B).
+
+        pos (torch.FloatTensor): 
+            Node positions of shape (num_nodes, 2).  
+            - Each row = (row_index, col_index) of the pixel in the grid.
+
+        edge_index (torch.LongTensor): 
+            Graph connectivity of shape (2, num_edges).  
+            - Each column = (source_node, target_node)  
+            - Pixels are connected to their 4-neighbors (up, down, left, right).
+    """
     image = Image.open(image_path).convert('RGB')
     transform = T.Compose([
         T.Resize((resize_value, resize_value)),
