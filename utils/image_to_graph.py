@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
-
+from torch.utils.data import Dataset
+import torchvision.datasets as  datasets
 
 
 def image_to_graph_pixel(image_path, resize_value=128, diagonals=False):
@@ -69,3 +70,17 @@ def image_to_graph_pixel(image_path, resize_value=128, diagonals=False):
     edge_index = np.transpose(edges)  # shape: (2, num_edges)
     
     return x, pos, edge_index
+
+class DatasetLoader(Dataset):
+    def __init__(self, dataset_path='dataset', resize_value=128, diagonals=False):
+        self.dataset_path = dataset_path
+        self.dataset = datasets.ImageFolder(self.dataset_path)
+        self.resize_value = resize_value
+        self.diagonals = diagonals
+    def __len__(self):
+        return len(self.dataset)
+    def __getitem__(self, idx):
+        image,label = self.dataset[idx]
+        x, pos, edge_index =image_to_graph_pixel(image, self.resize_value, self.diagonals)
+        return (x, pos, edge_index), label
+        

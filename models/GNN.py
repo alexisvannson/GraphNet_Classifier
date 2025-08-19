@@ -5,11 +5,6 @@ from torch_sparse import SparseTensor
 import torch.nn as nn
 from torch_geometric.nn import MetaLayer
 from typing import Union
-import torchvision.transforms as T
-from PIL import Image
-import numpy as np
-import networkx as nx
-from scipy.spatial import cKDTree
 from models.MLP import MLP
 
 ## Definition of Processors
@@ -296,11 +291,11 @@ class GraphNet(nn.Module):
 
 
 class LinearClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self,in_features=128*128, classes=2):
         super(LinearClassifier, self).__init__()
-        self.fc1 = nn.Linear(in_features=196*128, out_features=128)
+        self.fc1 = nn.Linear(in_features=in_features, out_features=128)
         self.fc2 = nn.Linear(in_features=128, out_features=32)
-        self.fc3 = nn.Linear(in_features=32, out_features=2)
+        self.fc3 = nn.Linear(in_features=32, out_features=classes)
         self.relu = nn.ReLU()
 
     def forward(self, x):
