@@ -2,7 +2,7 @@ torch
 torchvision
 matplotlib
 numpy
-PIL
+Pillow
 torch-scatter
 torch-sparse
 torch-geometric

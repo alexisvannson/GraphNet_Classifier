@@ -4,6 +4,7 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
+import numpy as np
 
 
 class ImageRegressionDataset(Dataset):
