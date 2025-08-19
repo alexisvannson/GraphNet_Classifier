@@ -1,9 +1,7 @@
-torch
-torchvision
 matplotlib
-numpy
+numpy<2
 Pillow
-torch-scatter
-torch-sparse
-torch-geometric
-torchinfo 
+torchinfo
+pandas
+networkx
+scipy 

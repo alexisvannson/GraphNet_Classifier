@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   graphnet-classifier:
     build: .
@@ -13,7 +11,7 @@ services:
       - ./weights:/app/weights
     environment:
       - PYTHONUNBUFFERED=1
-    # Override default command for interactive development
-    command: tail -f /dev/null
-    # Uncomment the line below to run training directly
-    # command: python main.py 
+    # Default: run training
+    command: python main.py
+    # To run tests instead, comment the line above and uncomment below:
+    # command: python test_setup.py 
