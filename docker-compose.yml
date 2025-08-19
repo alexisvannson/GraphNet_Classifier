@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  graphnet-classifier:
+    build: .
+    container_name: graphnet-classifier
+    volumes:
+      # Mount dataset directory for data persistence
+      - ./dataset:/app/dataset
+      # Mount predictions directory for output
+      - ./predictions:/app/predictions
+      # Mount weights directory for model persistence
+      - ./weights:/app/weights
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Override default command for interactive development
+    command: tail -f /dev/null
+    # Uncomment the line below to run training directly
+    # command: python main.py 

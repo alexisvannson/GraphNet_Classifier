@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 from torch_scatter import scatter_sum
-from torch_sparse import SparseTensor
+# from torch_sparse import SparseTensor
 import torch.nn as nn
 from torch_geometric.nn import MetaLayer
 from typing import Union
@@ -75,7 +75,7 @@ class NodeProcessor(nn.Module):
 		)
 
 	def forward(
-		self, x: Tensor, edge_index: Union[Tensor, SparseTensor], edge_attr: Tensor, u = None, batch = None
+		self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, u = None, batch = None
 	):
 		_, col = edge_index
 		out = scatter_sum(edge_attr, col, dim=0)  # aggregation
