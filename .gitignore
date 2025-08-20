@@ -1,3 +1,5 @@
 *.jpg
+*png
+*pth
 *ipynb
 __pycache__

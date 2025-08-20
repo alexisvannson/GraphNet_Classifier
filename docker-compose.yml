@@ -1,0 +1,17 @@
+services:
+  graphnet-classifier:
+    build: .
+    container_name: graphnet-classifier
+    volumes:
+      # Mount dataset directory for data persistence
+      - ./dataset:/app/dataset
+      # Mount predictions directory for output
+      - ./predictions:/app/predictions
+      # Mount weights directory for model persistence
+      - ./weights:/app/weights
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Default: run training
+    command: python main.py
+    # To run tests instead, comment the line above and uncomment below:
+    # command: python test_setup.py 
