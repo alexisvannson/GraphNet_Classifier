@@ -1,11 +1,11 @@
 import torch
 import numpy as np
 from PIL import Image
-from image_to_graph_optimized import create_grid_edges_optimized
+from .image_to_graph_optimized import create_grid_edges_optimized
 
 def image_to_graph_patch(image_or_path, resize_value=128, patch_size=8):
     """
-    Alternative approach: Use patches to reduce graph size.
+    Alternative approach: Use patches to reduce graph size. 
     
     Args:
         image_or_path: PIL image or path

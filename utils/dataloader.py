@@ -3,9 +3,9 @@ import torchvision.datasets as datasets
 import time
 import torch
 
-from image_to_graph.image_to_graph_optimized import image_to_graph_pixel_optimized
-from image_to_graph.image_to_graph_superpixel import image_to_graph_superpixel
-from image_to_graph.image_to_graph_patch import image_to_graph_patch
+from utils.image_to_graph.image_to_graph_optimized import image_to_graph_pixel_optimized
+from utils.image_to_graph.image_to_graph_superpixel import image_to_graph_superpixel
+from utils.image_to_graph.image_to_graph_patch import image_to_graph_patch
 
 class OptimizedDatasetLoader(Dataset):
     def __init__(self, dataset_path='dataset', resize_value=128, diagonals=False, 

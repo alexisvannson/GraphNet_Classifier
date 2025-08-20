@@ -4,4 +4,9 @@ Pillow
 torchinfo
 pandas
 networkx
-scipy 
+scipy
+torch
+torchvision
+torch-scatter
+torch-geometric
+scikit-image 
