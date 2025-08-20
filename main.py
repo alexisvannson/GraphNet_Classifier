@@ -16,7 +16,7 @@ def load_data(dataset_path, resize_value=128, batch_size=8):
 	return dataloader
 
 
-def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2):
+def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2,output_path='weights/MLP'):
 	input_dim = channels * resize_value * resize_value 
 
 	dataset = load_data('dataset', resize_value, batch_size)
@@ -24,10 +24,10 @@ def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_laye
 	num_classes = len(dataset.dataset.classes)
 	model = MLP(in_dim=input_dim, out_dim=num_classes, hidden_layers=hidden_layers)
 	
-	train(model, dataset, epochs)
+	train(model, dataset, epochs, output_path)
 
 
-def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True):
+def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True,output_path='weights/GNN'):
 	# Graph dataset produces tuples (x, pos, edge_index), label
 	from utils.dataloader import OptimizedDatasetLoader
 	
@@ -69,7 +69,7 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	model = CombinedModel(graph_net=graph_net, num_nodes=num_nodes, classes=num_classes)
 	
 	print(f"Training GNN with {method} method, {num_nodes} nodes")
-	train(model, dataloader, epochs)
+	train(model, dataloader, epochs, method, output_path)
 	
 
 

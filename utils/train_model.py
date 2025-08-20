@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-def train(model, dataset, epochs, patience=5):
+def train(model, dataset, epochs, method="", patience=5, output_path='weights'):
 	optimizer = optim.Adam(model.parameters(), lr=1e-3)
 	criterion = nn.CrossEntropyLoss()
 	best_loss = float('inf')
@@ -36,14 +36,13 @@ def train(model, dataset, epochs, patience=5):
 		if avg_loss < best_loss:
 			best_loss = avg_loss
 			patience_counter = 0
-			os.makedirs('weights', exist_ok=True)
-			torch.save(model.state_dict(), os.path.join('weights', f'best_model_epoch{epoch+1}.pth'))
+			os.makedirs(output_path, exist_ok=True)
+			torch.save(model.state_dict(), os.path.join(output_path, f'best_model_{method}_epoch{epoch+1}.pth'))
 		else:
 			patience_counter += 1
 			
 		if patience_counter >= patience:
 			print(f"Early stopping at epoch {epoch+1}")
 			break
-	os.makedirs('weights', exist_ok=True)
-	torch.save(model.state_dict(), os.path.join('weights', 'final_model.pth'))
-
+	os.makedirs(output_path, exist_ok=True)
+	torch.save(model.state_dict(), os.path.join(output_path, f'final_model_{method}.pth'))
