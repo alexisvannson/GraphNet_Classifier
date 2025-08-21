@@ -1,254 +1,142 @@
 # GraphNet Classifier
 
-A Graph Neural Network (GNN) based image classifier that converts images to pixel graphs and uses message passing for classification. This project compares traditional MLP approaches with Graph Neural Networks for image classification tasks.
+A Graph Neural Network (GNN) and MLP image classifier (chihuahua vs muffin). This README focuses on the simplest, most reliable way to run and develop the project: with Docker.
 
-## 🚀 Features
+### Why Docker?
+- Guarantees a working PyTorch + PyG stack (no torch_scatter issues)
+- No conflicts with your host Python
+- Same environment for everyone and in CI
 
-- **Graph Neural Network**: Converts images to pixel graphs with 4-neighborhood connectivity
-- **MLP Comparison**: Traditional multi-layer perceptron for baseline comparison
-- **Docker Setup**: Reproducible environment with all dependencies
-- **Inference Pipeline**: Complete inference and comparison tools
-- **Optimized Training**: Configurable dataset size and model complexity for fast experimentation
-
-## 📊 Dataset
-
-The project is configured for binary classification (chihuahua vs muffin) but can be extended to other datasets.
-
-### Dataset Structure
-```
-dataset/
-├── chihuahua/
-│   ├── img_0_1071.jpg
-│   ├── img_0_1074.jpg
-│   └── ... (641 images)
-└── muffin/
-    ├── img_0_1072.jpg
-    ├── img_0_1075.jpg
-    └── ... (542 images)
-```
-
-**Total**: 1,183 images across 2 classes
-
-## 🐳 Quick Start with Docker
-
-### Prerequisites
+## Prerequisites
 - Docker Desktop installed and running
-- Git
+- Git, terminal
 
-### 1. Clone and Setup
+## One-time setup
 ```bash
+# Clone
 git clone <repository-url>
 cd GraphNet_Classifier
+
+# Build the image (pins Torch 2.1.0 and compatible PyG wheels)
+docker compose build
 ```
 
-### 2. Build and Run Training
+## Quick start
 ```bash
-# Build and start training (default: 50 samples, 20 epochs)
-docker compose up --build
-
-# View logs
-docker compose logs -f graphnet-classifier
-
-# Stop training
+# Run with docker compose (default command runs main.py)
+docker compose up
+# Stop
 docker compose down
 ```
 
-### 3. Run Tests First (Optional)
-Edit `docker-compose.yml` and change the command to:
-```yaml
-command: python test_setup.py
-```
-Then run:
+What happens:
+- The container runs `python main.py`
+- Volumes are mounted so your data and results persist on your host:
+  - `./dataset -> /app/dataset`
+  - `./weights -> /app/weights`
+  - `./predictions -> /app/predictions`
+
+## Interactive development (recommended)
 ```bash
-docker compose up --build
+# Open a shell inside the container with project mounted
+docker compose run --rm graphnet-classifier bash
+
+# Inside the container you can run:
+python -c "import models.GNN; print('GNN OK')"
+python main.py
+python utils/inference.py
+```
+Tips inside the container:
+- The working directory is `/app` (your repo root)
+- Python path is set so `import models...` works
+- Your code edits on the host are immediately visible in the container
+
+## Common tasks
+
+### Train GNN
+- Edit `main.py` to adjust training parameters (epochs, resize_value, max_samples, etc.)
+- Then run inside the container:
+```bash
+python main.py
+```
+Weights are saved under `weights/GNN` (mounted volume, persisted on host).
+
+### Run MLP inference
+```bash
+python utils/inference.py
+```
+By default, it uses the MLP weights path configured in `utils/inference.py`.
+
+### Rebuild after dependency changes
+If you change `requirements.txt`, `Dockerfile`, or want a clean build:
+```bash
+docker compose build --no-cache
 ```
 
-## 🎯 Training Configuration
-
-### Current Optimized Settings (Fast Testing)
-```python
-train_GNN(epochs=20, hidden_layers=2, max_samples=50)
+## Local (no Docker) – not recommended
+You can use a local venv, but binary wheels for PyG often mismatch on macOS and cause segfaults. If you must:
+```bash
+python3.10 -m venv Graphnet
+source Graphnet/bin/activate
+pip install --upgrade pip
+# Pin exact CPU wheels known to work together
+pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cpu
+pip install pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv \
+  -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
+pip install -r requirements.txt
+python -c "import models.GNN; print('GNN OK')"
 ```
-- **50 samples** (instead of 1,183)
-- **64×64 resolution** (instead of 128×128)
-- **3 GraphNet blocks** (instead of 10)
-- **Expected time**: ~2-5 minutes
+If imports fail or segfault, prefer Docker.
 
-### Production Settings (Full Dataset)
-```python
-train_GNN(epochs=30, max_samples=None, resize_value=128, n_blocks=10)
-```
-- **Full dataset** (1,183 images)
-- **128×128 resolution**
-- **10 GraphNet blocks**
-- **Expected time**: ~2-5 days
+## Troubleshooting
 
-### Custom Configuration
-Edit `main.py` to adjust:
-- `epochs`: Number of training epochs
-- `max_samples`: Limit dataset size for faster testing
-- `resize_value`: Image resolution (32, 64, 128)
-- `n_blocks`: Number of GraphNet blocks (2-10)
+- "torch_scatter" import errors or segfaults
+  - Run inside Docker. The image pins compatible versions.
+  - Keep GNN imports lazy (already done in `main.py`).
 
-## 🔍 Inference and Comparison
+- Changes not reflected in the container
+  - If you changed dependencies, rebuild: `docker compose build`
+  - For code-only changes, a restart is enough: `docker compose down && docker compose up`
 
-### After Training (when weights are saved)
-
-```python
-# Single image inference
-test_image = 'dataset/chihuahua/img_0_1071.jpg'
-
-# GNN inference
-inference_GNN(test_image)
-
-# MLP inference
-inference_MLP(test_image)
-
-# Compare both models
-compare_models(test_image)
+- Permission issues with mounted folders
+```bash
+sudo chown -R "$USER":"$USER" dataset predictions weights
 ```
 
-### Output Files
-- `predictions/gnn_prediction_[image].png` - GNN results
-- `predictions/mlp_prediction_[image].png` - MLP results
-- `predictions/comparison_[image].png` - Model comparison
-
-## 🏗️ Model Architecture
-
-### GraphNet
-- **Node Features**: RGB pixel values (3 channels)
-- **Edge Features**: Relative position + distance
-- **Message Passing**: Multiple GraphNet blocks
-- **Classification**: Flattened node features → MLP classifier
-
-### MLP (Comparison)
-- **Input**: Flattened image pixels
-- **Architecture**: Multi-layer perceptron
-- **Output**: Class probabilities
-
-### CombinedModel
-- Wraps GraphNet with classification head
-- Handles graph → tensor conversion
-- Outputs class predictions
-
-## 📁 Project Structure
-
+## Project structure (key parts)
 ```
 GraphNet_Classifier/
 ├── models/
-│   ├── GNN.py              # Graph Neural Network implementation
-│   └── MLP.py              # Multi-layer perceptron
+│   ├── GNN.py              # GraphNet + CombinedModel (lazy import safe)
+│   └── MLP.py              # Baseline MLP
 ├── utils/
-│   ├── image_to_graph.py   # Image to graph conversion
-│   ├── image_to_graph_knn.py # KNN-based graph construction
-│   ├── dataset.py          # Dataset utilities
-│   └── train_model.py      # Training utilities
-├── dataset/                # Training data (mounted volume)
-├── predictions/            # Output predictions (mounted volume)
-├── weights/               # Saved model weights (mounted volume)
-├── main.py               # Main training and inference script
-├── test_setup.py         # Environment testing script
-├── requirements.txt      # Python dependencies
-├── Dockerfile           # Docker configuration
-├── docker-compose.yml   # Docker Compose setup
-└── DOCKER_SETUP.md      # Detailed Docker instructions
+│   ├── image_to_graph/...  # Image → graph utilities
+│   ├── train_model.py      # Generic train loop
+│   └── inference.py        # Inference helpers
+├── dataset/                # Mounted data (host <-> container)
+├── predictions/            # Mounted outputs
+├── weights/                # Mounted model weights
+├── Dockerfile              # Reproducible runtime
+├── docker-compose.yml      # One-command run
+└── README.md               # This guide
 ```
 
-## 🔧 Development Workflow
+## FAQ
+- Do I need a virtualenv if I use Docker?
+  - No. The container isolates Python for you.
+- Where do my outputs go?
+  - In `predictions/` and `weights/` on your host (they are mounted volumes).
+- Can I run a different command?
+  - Yes: `docker compose run --rm graphnet-classifier bash` and run any Python command from the shell.
 
-### Interactive Development
+---
+If you’re new to Docker, the only commands you really need are:
 ```bash
-# Start container with shell access
+docker compose build
+docker compose up  # Ctrl-C to stop
+docker compose down
+```
+And for an interactive shell inside the environment:
+```bash
 docker compose run --rm graphnet-classifier bash
-
-# Inside container
-python test_setup.py    # Test environment
-python main.py          # Run training
 ```
-
-### Environment Testing
-```bash
-# Test all components
-docker compose run --rm graphnet-classifier python test_setup.py
-```
-
-### Custom Training
-```bash
-# Edit main.py to change parameters, then rebuild
-docker compose up --build
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Docker not found**
-```bash
-# Install Docker Desktop
-brew install --cask docker
-open -a Docker
-```
-
-**PyG Import Errors**
-- The Dockerfile uses PyTorch 2.1.0 with compatible PyG wheels
-- All dependencies are pre-installed in the container
-
-**Permission Issues**
-```bash
-sudo chown -R $USER:$USER dataset predictions weights
-```
-
-**Slow Training**
-- Reduce `max_samples` in `main.py`
-- Lower `resize_value` (32, 64 instead of 128)
-- Reduce `n_blocks` (2-3 instead of 10)
-
-### Performance Tips
-
-**For Fast Testing:**
-```python
-train_GNN(epochs=1, max_samples=10, resize_value=32, n_blocks=2)
-# Time: ~5-10 seconds
-```
-
-**For Medium Scale:**
-```python
-train_GNN(epochs=10, max_samples=200, resize_value=64, n_blocks=5)
-# Time: ~10-15 minutes
-```
-
-**For Production:**
-```python
-train_GNN(epochs=30, max_samples=None, resize_value=128, n_blocks=10)
-# Time: ~2-5 days
-```
-
-## 📈 Expected Results
-
-### Training Performance
-- **Fast testing**: 30 seconds - 2 minutes
-- **Medium scale**: 10-15 minutes
-- **Full dataset**: 2-5 days
-
-### Model Comparison
-- **GNN**: Better at capturing spatial relationships
-- **MLP**: Faster training, simpler architecture
-- **Comparison**: Side-by-side evaluation with confidence scores
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with Docker
-5. Submit a pull request
-
-## 📄 License
-
-This project is for educational and research purposes.
-
-## 🙏 Acknowledgments
-
-- PyTorch Geometric for GNN implementation
-- Docker for containerization
-- The chihuahua/muffin dataset for testing
