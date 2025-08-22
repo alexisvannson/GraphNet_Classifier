@@ -7,7 +7,7 @@ from torchvision import transforms
 # Deferred GNN import to avoid import-time segfaults
 from utils.train_model import train
 
-from utils.inference import inference_MLP
+#from utils.inference import mlp_inference, gnn_inference
 
 
 def load_data(dataset_path, resize_value=128, batch_size=8):
@@ -18,7 +18,7 @@ def load_data(dataset_path, resize_value=128, batch_size=8):
 	return dataloader
 
 
-def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2,output_path='weights/MLP'):
+def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2, output_path='weights/MLP'):
 	input_dim = channels * resize_value * resize_value 
 
 	dataset = load_data('dataset', resize_value, batch_size)
@@ -26,7 +26,7 @@ def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_laye
 	num_classes = len(dataset.dataset.classes)
 	model = MLP(in_dim=input_dim, out_dim=num_classes, hidden_layers=hidden_layers)
 	
-	train(model, dataset, epochs, output_path)
+	train(model, dataset, epochs, patience=5, output_path=output_path)
 
 
 def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True,output_path='weights/GNN'):
@@ -73,33 +73,12 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	model = CombinedModel(graph_net=graph_net, num_nodes=num_nodes, classes=num_classes)
 	
 	print(f"Training GNN with {method} method, {num_nodes} nodes")
-	train(model, dataloader, epochs, method, output_path)
+	train(model, dataloader, epochs, patience=5, output_path=output_path)
 	
 
-def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_epoch2.pth', resize_value: int = 64):
-	"""Run a single-image GNN inference with lazy imports to avoid segfaults in misconfigured hosts."""
-	from utils.image_to_graph.image_to_graph_optimized import image_to_graph_pixel_optimized
-	try:
-		from models.GNN import CombinedModel, GraphNet
-	except Exception as e:
-		print('Failed to import GNN modules. Run inside Docker (see README). Error:', e)
-		return
-	graph_net = GraphNet(num_local_features=3, space_dim=2, out_channels=1, n_blocks=3)
-	model = CombinedModel(graph_net=graph_net, num_nodes=resize_value * resize_value, classes=2)
-	# Load weights
-	state = torch.load(weights_path, map_location='cpu')
-	model.load_state_dict(state)
-	model.eval()
-	with torch.no_grad():
-		graph_tuple = image_to_graph_pixel_optimized(image_path, resize_value=resize_value)
-		logits = model(graph_tuple)
-		print('GNN logits:', logits)
 
 
 if __name__ == '__main__':
 	print('start')
 	# Example GNN inference (ensure weights exist under weights/GNN/)
-	gnn_image = 'dataset/chihuahua/img_0_8.jpg'
-	gnn_weights = 'weights/final_model.pth'
-	gnn_inference(gnn_image, gnn_weights, resize_value=64)
-	#train_GNN(epochs=100)
+	train_MLP(epochs=100, resize_value=64, output_path='weights/MLP/pixel_dim64_3block')

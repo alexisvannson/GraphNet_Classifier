@@ -1,0 +1,15 @@
+services:
+  graphnet-classifier:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: graphnet-classifier-dev
+    volumes:
+      # Mount the entire project directory for live code changes
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Default: run training
+    command: python main.py
+    # To run tests instead, comment the line above and uncomment below:
+    # command: python test_setup.py 
