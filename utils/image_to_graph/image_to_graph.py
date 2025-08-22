@@ -60,10 +60,6 @@ def image_to_graph_pixel(image_or_path, resize_value=128, diagonals=False):
 
     edge_index = np.transpose(np.array(edges, dtype=np.int64))  # (2, E)
 
-    # Convert to tensors
-    x = torch.tensor(x, dtype=torch.float32)
-    pos = torch.tensor(pos, dtype=torch.float32)
-    edge_index = torch.tensor(edge_index, dtype=torch.long)
     return x, pos, edge_index
 
 
@@ -78,5 +74,5 @@ class DatasetLoader(Dataset):
     def __getitem__(self, idx):
         image, label = self.dataset[idx]
         x, pos, edge_index = image_to_graph_pixel(image, self.resize_value, self.diagonals)
-        return (x, pos, edge_index), torch.tensor(label, dtype=torch.long)
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(pos, dtype=torch.float32), torch.tensor(edge_index, dtype=torch.long), torch.tensor(label, dtype=torch.long)
         

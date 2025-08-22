@@ -1,0 +1,14 @@
+Training started at: 2025-08-22 11:11:42
+Epochs: 100, Patience: 5
+Output path: weights/GNN/dim32_3block
+--------------------------------------------------
+Epoch 1/100, avg_loss=0.6989
+Epoch 1/100, needed 1.90 minutes
+Epoch 2/100, avg_loss=0.6944
+Epoch 2/100, needed 2.02 minutes
+Epoch 3/100, avg_loss=0.6908
+Epoch 3/100, needed 1.80 minutes
+Epoch 4/100, avg_loss=0.6907
+Epoch 4/100, needed 2.50 minutes
+Epoch 5/100, avg_loss=0.6904
+Epoch 5/100, needed 2.27 minutes

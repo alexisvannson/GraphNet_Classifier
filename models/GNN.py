@@ -1,6 +1,24 @@
 import torch
 from torch import Tensor
-from torch_scatter import scatter_sum
+# Optional dependency: torch_scatter
+try:
+	from torch_scatter import scatter_sum as _scatter_sum_ext
+	def scatter_sum(src: Tensor, index: Tensor, dim: int = 0, dim_size: int | None = None) -> Tensor:
+		# Use the optimized extension when available
+		return _scatter_sum_ext(src, index, dim=dim, dim_size=dim_size)
+except Exception:
+	# Pure-PyTorch fallback (CPU/GPU) using index_add_. Assumes 1D index per row aggregation.
+	def scatter_sum(src: Tensor, index: Tensor, dim: int = 0, dim_size: int | None = None) -> Tensor:
+		if dim != 0:
+			raise NotImplementedError("fallback scatter_sum currently supports dim=0 only")
+		if src.ndim == 1:
+			src = src.unsqueeze(-1)
+		if dim_size is None:
+			dim_size = int(index.max().item()) + 1 if index.numel() > 0 else 0
+		out = src.new_zeros((dim_size, src.size(1)))
+		# index should be 1D LongTensor of size [num_rows]
+		out.index_add_(0, index.long(), src)
+		return out
 # from torch_sparse import SparseTensor
 import torch.nn as nn
 from torch_geometric.nn import MetaLayer
