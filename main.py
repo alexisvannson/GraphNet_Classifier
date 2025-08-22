@@ -74,11 +74,9 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	
 	print(f"Training GNN with {method} method, {num_nodes} nodes")
 	train(model, dataloader, epochs, patience=5, output_path=output_path)
-	
-
-
 
 if __name__ == '__main__':
 	print('start')
 	# Example GNN inference (ensure weights exist under weights/GNN/)
-	train_MLP(epochs=100, resize_value=64, output_path='weights/MLP/pixel_dim64_3block')
+	#train_MLP(epochs=100, resize_value=128,hidden_layers=5, output_path='weights/MLP/dim128_5hidden_dim')
+	train_GNN(epochs=100, resize_value=32, output_path='weights/GNN/dim32_3block')

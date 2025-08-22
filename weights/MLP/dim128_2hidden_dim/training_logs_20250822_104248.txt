@@ -1,0 +1,46 @@
+Training started at: 2025-08-22 10:42:48
+Epochs: 100, Patience: 5
+Output path: weights/MLP/dim128_2hidden_dim
+--------------------------------------------------
+Epoch 1/100, avg_loss=0.9611
+Epoch 1/100, needed 0.33 minutes
+Epoch 2/100, avg_loss=0.8307
+Epoch 2/100, needed 0.37 minutes
+Epoch 3/100, avg_loss=0.7529
+Epoch 3/100, needed 0.36 minutes
+Epoch 4/100, avg_loss=0.7139
+Epoch 4/100, needed 0.40 minutes
+Epoch 5/100, avg_loss=0.6979
+Epoch 5/100, needed 0.31 minutes
+Epoch 6/100, avg_loss=0.6923
+Epoch 6/100, needed 0.32 minutes
+Epoch 7/100, avg_loss=0.6905
+Epoch 7/100, needed 0.30 minutes
+Epoch 8/100, avg_loss=0.6902
+Epoch 8/100, needed 0.32 minutes
+Epoch 9/100, avg_loss=0.6900
+Epoch 9/100, needed 0.31 minutes
+Epoch 10/100, avg_loss=0.6900
+Epoch 10/100, needed 0.30 minutes
+Epoch 11/100, avg_loss=0.6901
+Epoch 11/100, needed 0.31 minutes
+Epoch 12/100, avg_loss=0.6900
+Epoch 12/100, needed 0.30 minutes
+Epoch 13/100, avg_loss=0.6901
+Epoch 13/100, needed 0.30 minutes
+Epoch 14/100, avg_loss=0.6899
+Epoch 14/100, needed 0.30 minutes
+Epoch 15/100, avg_loss=0.6900
+Epoch 15/100, needed 0.33 minutes
+Epoch 16/100, avg_loss=0.6902
+Epoch 16/100, needed 0.31 minutes
+Epoch 17/100, avg_loss=0.6900
+Epoch 17/100, needed 0.31 minutes
+Epoch 18/100, avg_loss=0.6900
+Epoch 18/100, needed 0.30 minutes
+Epoch 19/100, avg_loss=0.6900
+Epoch 19/100, needed 0.30 minutes
+--------------------------------------------------
+Training completed at: 2025-08-22 10:48:55
+Best loss achieved: 0.6899
+Final model saved: weights/MLP/dim128_2hidden_dim/final_model.pth
