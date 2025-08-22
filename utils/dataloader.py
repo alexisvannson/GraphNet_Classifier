@@ -45,4 +45,9 @@ class OptimizedDatasetLoader(Dataset):
         else:
             raise ValueError(f"Unknown method: {self.method}")
         
+        # Convert numpy arrays to PyTorch tensors
+        x = torch.tensor(x, dtype=torch.float32)
+        pos = torch.tensor(pos, dtype=torch.float32)
+        edge_index = torch.tensor(edge_index, dtype=torch.long)
+        
         return (x, pos, edge_index), torch.tensor(label, dtype=torch.long)
