@@ -48,8 +48,7 @@ def image_to_graph_superpixel(image_or_path, resize_value=128, n_segments=100, c
         centroid_y, centroid_x = np.mean(y_coords), np.mean(x_coords)
         positions.append([centroid_y, centroid_x])
     
-    x = torch.tensor(features, dtype=torch.float32)
-    pos = torch.tensor(positions, dtype=torch.float32)
+    x, pos = features, positions
     
     # Create edges between adjacent superpixels
     edges = []
@@ -67,8 +66,8 @@ def image_to_graph_superpixel(image_or_path, resize_value=128, n_segments=100, c
                 edges.append([j, i])  # Undirected graph
     
     if edges:
-        edge_index = torch.tensor(edges, dtype=torch.long).T
+        edge_index = np.array(edges).T
     else:
-        edge_index = torch.empty((2, 0), dtype=torch.long)
+        edge_index = np.empty((2, 0))
     
     return x, pos, edge_index

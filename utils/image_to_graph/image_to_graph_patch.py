@@ -46,8 +46,7 @@ def image_to_graph_patch(image_or_path, resize_value=128, patch_size=8):
             center_x = j * patch_w + patch_w // 2
             positions.append([center_y, center_x])
     
-    x = torch.tensor(features, dtype=torch.float32)
-    pos = torch.tensor(positions, dtype=torch.float32)
+    x, pos = features, positions
     
     # Create grid edges between patches
     edge_index = create_grid_edges_optimized(n_patches_h, n_patches_w, diagonals=False)

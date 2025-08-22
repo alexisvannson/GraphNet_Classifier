@@ -36,7 +36,7 @@ def create_grid_edges_optimized(H, W, diagonals=False):
     # Combine all edges
     edge_index = np.concatenate(edges, axis=0).T  # (2, num_edges)
     
-    return torch.tensor(edge_index, dtype=torch.long)
+    return edge_index
 
 
 @lru_cache(maxsize=128)
@@ -72,11 +72,11 @@ def image_to_graph_pixel_optimized(image_or_path, resize_value=128, diagonals=Fa
     H, W, C = tab.shape
 
     # Node features: flatten pixel values => (H*W, C)
-    x = torch.tensor(tab.reshape(H * W, C), dtype=torch.float32)
+    x = tab.reshape(H * W, C)
 
     # Node positions: (row, col) - vectorized
     rows, cols = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
-    pos = torch.tensor(np.stack([rows.flatten(), cols.flatten()], axis=1), dtype=torch.float32)
+    pos = np.stack([rows.flatten(), cols.flatten()], axis=1)
 
     # Get edge indices (cached for same image size)
     if use_cache:

@@ -33,13 +33,8 @@ def train(model, dataset, epochs, patience=5, output_path='weights', start_weigh
 		epoch_loss = 0
 		num_batches = 0
 		for sample, label in dataset:
-			# Support both MLP and GNN inputs
-			if isinstance(sample, tuple):
-				# Graph data: (x, pos, edge_index)
-				logits = model(sample)
-			else:
-				# Image tensor for MLP
-				logits = model(sample)
+			# tensor for MLP, (x, pos, edge_index) for GNN
+			logits = model(sample)
 			loss = criterion(logits, label)
 			
 			optimizer.zero_grad()

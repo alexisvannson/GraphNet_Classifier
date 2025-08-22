@@ -79,4 +79,4 @@ if __name__ == '__main__':
 	print('start')
 	# Example GNN inference (ensure weights exist under weights/GNN/)
 	#train_MLP(epochs=100, resize_value=128,hidden_layers=5, output_path='weights/MLP/dim128_5hidden_dim')
-	train_GNN(epochs=100, resize_value=32, output_path='weights/GNN/dim32_3block')
+	train_GNN(epochs=100, resize_value=128, output_path='weights/GNN/dim128_3block')
