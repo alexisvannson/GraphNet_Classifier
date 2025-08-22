@@ -51,6 +51,125 @@ Tips inside the container:
 - Python path is set so `import models...` works
 - Your code edits on the host are immediately visible in the container
 
+## Docker Development vs Production Configurations
+
+This project includes two Docker configurations for different use cases:
+
+### Development Configuration (`docker-compose.dev.yml`)
+**Best for**: Active development, debugging, and experimentation
+
+**Key Features:**
+- ✅ **Live code changes**: Edit files on your host, see changes immediately in container
+- ✅ **No rebuilds needed**: Code changes don't require rebuilding the Docker image
+- ✅ **Faster iteration**: Perfect for debugging and testing different approaches
+- ✅ **Simpler setup**: Single volume mount for the entire project
+
+**Usage:**
+```bash
+# Build and run development version
+docker compose -f docker-compose.dev.yml up --build
+
+# Interactive shell with development setup
+docker compose -f docker-compose.dev.yml run --rm graphnet-classifier bash
+```
+
+**How it works:**
+- Uses `Dockerfile.dev` (no `COPY . .` command)
+- Mounts entire project directory: `- .:/app`
+- Relies entirely on volume mounting for source code
+
+### Production Configuration (`docker-compose.yml`)
+**Best for**: Deployment, final testing, and reproducible builds
+
+**Key Features:**
+- ✅ **Reproducible**: Exact code state is preserved in the image
+- ✅ **Optimized**: Faster startup (no volume mounting overhead)
+- ✅ **Controlled**: Explicit control over what gets mounted
+- ✅ **Deployment-ready**: Self-contained image with all code
+
+**Usage:**
+```bash
+# Build and run production version
+docker compose up --build
+
+# Interactive shell with production setup
+docker compose run --rm graphnet-classifier bash
+```
+
+**How it works:**
+- Uses `Dockerfile` (includes `COPY . .` command)
+- Mounts specific directories: `./dataset`, `./predictions`, `./weights`
+- Code is copied into image during build
+
+### When to Use Which?
+
+| Use Case | Configuration | Why |
+|----------|---------------|-----|
+| **Active development** | Development (`docker-compose.dev.yml`) | Live code changes, no rebuilds |
+| **Debugging** | Development (`docker-compose.dev.yml`) | Immediate feedback on code changes |
+| **Final testing** | Production (`docker-compose.yml`) | Reproducible environment |
+| **Deployment** | Production (`docker-compose.yml`) | Self-contained, optimized |
+| **CI/CD** | Production (`docker-compose.yml`) | Consistent builds |
+
+### Real-World Example
+
+**Scenario**: You're debugging your `main.py` file
+
+**With Development Config:**
+```bash
+# 1. Start development container
+docker compose -f docker-compose.dev.yml run --rm graphnet-classifier bash
+
+# 2. Edit main.py on your host (in another terminal/editor)
+# 3. Run in container - sees changes immediately!
+python main.py
+```
+
+**With Production Config:**
+```bash
+# 1. Edit main.py on your host
+# 2. Rebuild image (required for code changes)
+docker compose build --no-cache
+# 3. Run container - now sees changes
+docker compose run --rm graphnet-classifier bash
+python main.py
+```
+
+### Switching Between Configurations
+
+**From Development to Production:**
+```bash
+# Stop development container
+docker compose -f docker-compose.dev.yml down
+
+# Start production container
+docker compose up --build
+```
+
+**From Production to Development:**
+```bash
+# Stop production container
+docker compose down
+
+# Start development container
+docker compose -f docker-compose.dev.yml up --build
+```
+
+### Troubleshooting Docker Configurations
+
+**"Old version" of code running:**
+- **Development config**: Make sure you're using `docker-compose.dev.yml`
+- **Production config**: Rebuild after code changes: `docker compose build --no-cache`
+
+**Import errors in container:**
+- Check that your code changes are visible in the container
+- For development: restart container to pick up new files
+- For production: rebuild image after code changes
+
+**Volume mounting issues:**
+- Development: Uses single mount `- .:/app`
+- Production: Uses specific mounts for data directories
+
 ## Common tasks
 
 ### Train GNN
