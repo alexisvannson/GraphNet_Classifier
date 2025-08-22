@@ -3,6 +3,8 @@ services:
     build: .
     container_name: graphnet-classifier
     volumes:
+      # Mount the entire project directory for live code changes
+      - .:/app
       # Mount dataset directory for data persistence
       - ./dataset:/app/dataset
       # Mount predictions directory for output

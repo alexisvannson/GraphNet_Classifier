@@ -4,8 +4,10 @@ import torch
 import torchvision.datasets as datasets
 from torchvision import transforms
 
-from models.GNN import CombinedModel, GraphNet
+# Deferred GNN import to avoid import-time segfaults
 from utils.train_model import train
+
+from utils.inference import inference_MLP
 
 
 def load_data(dataset_path, resize_value=128, batch_size=8):
@@ -28,6 +30,8 @@ def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_laye
 
 
 def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True,output_path='weights/GNN'):
+	# Local import to avoid import-time segfault from torch_scatter
+	from models.GNN import CombinedModel, GraphNet
 	# Graph dataset produces tuples (x, pos, edge_index), label
 	from utils.dataloader import OptimizedDatasetLoader
 	
@@ -72,22 +76,30 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	train(model, dataloader, epochs, method, output_path)
 	
 
+def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_epoch2.pth', resize_value: int = 64):
+	"""Run a single-image GNN inference with lazy imports to avoid segfaults in misconfigured hosts."""
+	from utils.image_to_graph.image_to_graph_optimized import image_to_graph_pixel_optimized
+	try:
+		from models.GNN import CombinedModel, GraphNet
+	except Exception as e:
+		print('Failed to import GNN modules. Run inside Docker (see README). Error:', e)
+		return
+	graph_net = GraphNet(num_local_features=3, space_dim=2, out_channels=1, n_blocks=3)
+	model = CombinedModel(graph_net=graph_net, num_nodes=resize_value * resize_value, classes=2)
+	# Load weights
+	state = torch.load(weights_path, map_location='cpu')
+	model.load_state_dict(state)
+	model.eval()
+	with torch.no_grad():
+		graph_tuple = image_to_graph_pixel_optimized(image_path, resize_value=resize_value)
+		logits = model(graph_tuple)
+		print('GNN logits:', logits)
+
 
 if __name__ == '__main__':
-	# Train GNN model with optimized preprocessing
-	# Choose one of these methods:
-	
-	# Method 1: Optimized pixel-based (fastest)
-	#train_GNN(epochs=20, hidden_layers=2, method='pixel', use_cache=True)
-	
-	# Method 2: Superpixel-based (reduces graph size significantly)
-	train_GNN(epochs=20, hidden_layers=2, max_samples=None, method='pixel')
-	
-	# Method 3: Patch-based (good balance)
-	# train_GNN(epochs=20, hidden_layers=2, max_samples=50, method='patch')
-	
-	# Example inference (uncomment after training completes and weights are saved)
-	#test_image = 'dataset/chihuahua/img_0_1071.jpg'  # Use any image from your dataset
-	#inference_GNN(test_image,weights='weights/GNN/best_model_epoch2.pth')
-	#inference_MLP(test_image)
-	#compare_models(test_image)
+	print('start')
+	# Example GNN inference (ensure weights exist under weights/GNN/)
+	gnn_image = 'dataset/chihuahua/img_0_8.jpg'
+	gnn_weights = 'weights/final_model.pth'
+	gnn_inference(gnn_image, gnn_weights, resize_value=64)
+	#train_GNN(epochs=100)

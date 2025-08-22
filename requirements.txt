@@ -9,4 +9,4 @@ torch
 torchvision
 torch-scatter
 torch-geometric
-scikit-image 
+scikit-image
