@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 from PIL import Image
 
@@ -23,8 +24,9 @@ def mlp_inference(image_path, weights='weights/MLP/final_model_.pth', resize_val
         img = Image.open(image_path).resize((resize_value, resize_value)).convert('RGB')
         img_array = np.array(img)
         input_tensor = torch.tensor(img_array.flatten(), dtype=torch.float32).unsqueeze(0)  # Add batch dimension
-        output = model(input_tensor)
-    return output
+        logits = model(input_tensor)
+        probabilities = F.softmax(logits, dim=1)
+    return logits, probabilities
 
 
 def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_epoch2.pth', resize_value: int = 64):
@@ -44,4 +46,7 @@ def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_e
 	with torch.no_grad():
 		graph_tuple = image_to_graph_pixel_optimized(image_path, resize_value=resize_value)
 		logits = model(graph_tuple)
+		probabilities = F.softmax(logits, dim=1)
 		print('GNN logits:', logits)
+		print('GNN probabilities:', probabilities)
+		return logits, probabilities
