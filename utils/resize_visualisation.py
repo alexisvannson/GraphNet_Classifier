@@ -9,11 +9,5 @@ def visualise_resize(image_path, resize_value, output_path):
 
 
 if __name__ == "__main__":
-    visualise_resize("dataset/chihuahua/img_4_799.jpg", 32, "static/chihuahua/img_4_799_32.jpg")
-    visualise_resize("dataset/muffin/img_0_187.jpg", 32, "static/muffin/img_4_880_32.jpg")
-    visualise_resize("dataset/chihuahua/img_4_799.jpg", 64, "static/chihuahua/img_4_799_64.jpg")
-    visualise_resize("dataset/muffin/img_0_187.jpg", 64, "static/muffin/img_4_880_64.jpg")
-    visualise_resize("dataset/chihuahua/img_4_799.jpg", 128, "static/chihuahua/img_4_799_128.jpg")
-    visualise_resize("dataset/muffin/img_0_187.jpg", 128, "static/muffin/img_0_187_128.jpg")
-    visualise_resize("dataset/chihuahua/img_4_799.jpg", 256, "static/chihuahua/img_4_799_256.jpg")
-    visualise_resize("dataset/muffin/img_0_187.jpg", 256, "static/muffin/img_0_187_256.jpg")
+    #visualise_resize("dataset/chihuahua/img_4_799.jpg", 32, "static/chihuahua/img_4_799_32.jpg")
+    #visualise_resize("dataset/muffin/img_0_187.jpg", 32, "static/muffin/img_4_880_32.jpg")
