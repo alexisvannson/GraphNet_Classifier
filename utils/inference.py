@@ -69,8 +69,3 @@ def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_e
 		print('GNN logits:', logits)
 		print('GNN probabilities:', probabilities)
 		return logits, probabilities
-
-print(gnn_inference('dataset/chihuahua/img_0_8.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
-print(gnn_inference('dataset/muffin/img_0_31.jpg.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
-print(gnn_inference('dataset/chihuahua/img_0_137.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
-print(gnn_inference('dataset/muffin/img_0_431.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
