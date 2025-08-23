@@ -1,0 +1,4 @@
+Training started at: 2025-08-22 15:19:25
+Epochs: 100, Patience: 5
+Output path: weights/GNN/dim128_3block
+--------------------------------------------------

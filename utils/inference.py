@@ -44,9 +44,33 @@ def gnn_inference(image_path: str, weights_path: str = 'weights/GNN/best_model_e
 	model.load_state_dict(state)
 	model.eval()
 	with torch.no_grad():
-		graph_tuple = image_to_graph_pixel_optimized(image_path, resize_value=resize_value)
+		x, pos, edge_index = image_to_graph_pixel_optimized(image_path, resize_value=resize_value)
+		# Convert numpy arrays to PyTorch tensors
+		x = torch.tensor(x, dtype=torch.float32)
+		pos = torch.tensor(pos, dtype=torch.float32)
+		edge_index = torch.tensor(edge_index, dtype=torch.long)
+		
+		# Debug: print input shapes and values
+		print(f'Input x shape: {x.shape}, x range: [{x.min():.3f}, {x.max():.3f}]')
+		print(f'Input pos shape: {pos.shape}, pos range: [{pos.min():.3f}, {pos.max():.3f}]')
+		print(f'Input edge_index shape: {edge_index.shape}, edge_index range: [{edge_index.min()}, {edge_index.max()}]')
+		
+		graph_tuple = (x, pos, edge_index)
 		logits = model(graph_tuple)
-		probabilities = F.softmax(logits, dim=1)
+		
+		# Debug: print logits shape
+		print(f'Logits shape: {logits.shape}')
+		
+		# Ensure logits has the right shape for softmax
+		if logits.dim() == 1:
+			logits = logits.unsqueeze(0)  # Add batch dimension if missing
+		
+		probabilities = F.softmax(logits, dim=-1)  # Use dim=-1 instead of dim=1
 		print('GNN logits:', logits)
 		print('GNN probabilities:', probabilities)
 		return logits, probabilities
+
+print(gnn_inference('dataset/chihuahua/img_0_8.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
+print(gnn_inference('dataset/muffin/img_0_31.jpg.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
+print(gnn_inference('dataset/chihuahua/img_0_137.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
+print(gnn_inference('dataset/muffin/img_0_431.jpg', weights_path='weights/GNN/pixel_dim64_3block/final_model.pth', resize_value=64))
