@@ -47,7 +47,7 @@ def get_cached_edge_index(resize_value, diagonals):
     return create_grid_edges_optimized(resize_value, resize_value, diagonals)
 
 
-def image_to_graph_pixel_optimized(image_or_path, resize_value=128, diagonals=False, use_cache=True):
+def image_to_graph_pixel_optimized(image_or_path, resize_value=128, diagonals=False, use_cache=True, grayscale=False):
     """
     Optimized version of image to graph conversion.
     
@@ -56,6 +56,7 @@ def image_to_graph_pixel_optimized(image_or_path, resize_value=128, diagonals=Fa
         resize_value (int, optional): Output resolution (resize_value x resize_value).
         diagonals (bool): Whether to include diagonal connections
         use_cache (bool): Whether to use cached edge indices
+        grayscale (bool): Whether to convert to grayscale (for MNIST optimization)
     
     Returns:
         x (torch.FloatTensor): Node features of shape (num_nodes, num_features).
@@ -63,16 +64,28 @@ def image_to_graph_pixel_optimized(image_or_path, resize_value=128, diagonals=Fa
         edge_index (torch.LongTensor): Graph connectivity of shape (2, num_edges).
     """
     if isinstance(image_or_path, str):
-        image = Image.open(image_or_path).convert('RGB')
+        if grayscale:
+            image = Image.open(image_or_path).convert('L')
+        else:
+            image = Image.open(image_or_path).convert('RGB')
     else:
-        image = image_or_path.convert('RGB')
+        if grayscale:
+            image = image_or_path.convert('L')
+        else:
+            image = image_or_path.convert('RGB')
 
     resized_image = image.resize((resize_value, resize_value))
-    tab = np.array(resized_image)  # H, W, C
-    H, W, C = tab.shape
+    tab = np.array(resized_image)  # H, W, C (or H, W for grayscale)
+    
+    if grayscale:
+        H, W = tab.shape
+        # Add channel dimension for grayscale
+        tab = tab.reshape(H, W, 1)
+    else:
+        H, W, C = tab.shape
 
     # Node features: flatten pixel values => (H*W, C)
-    x = tab.reshape(H * W, C)
+    x = tab.reshape(H * W, -1)  # -1 automatically handles 1 or 3 channels
 
     # Node positions: (row, col) - vectorized
     rows, cols = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')

@@ -10,3 +10,4 @@ torchvision
 torch-scatter
 torch-geometric
 scikit-image
+tqdm

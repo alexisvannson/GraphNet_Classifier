@@ -4,6 +4,7 @@ import torch.optim as optim
 import os
 import time
 from datetime import datetime
+from tqdm import tqdm
 
 def train(model, dataset, epochs, patience=5, output_path='weights', start_weights=None):
 	optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -32,7 +33,7 @@ def train(model, dataset, epochs, patience=5, output_path='weights', start_weigh
 		checkpoint1 = time.time()
 		epoch_loss = 0
 		num_batches = 0
-		for sample, label in dataset:
+		for sample, label in tqdm(dataset):
 			# tensor for MLP, (x, pos, edge_index) for GNN
 			logits = model(sample)
 			loss = criterion(logits, label)

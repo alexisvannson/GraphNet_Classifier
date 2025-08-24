@@ -29,7 +29,7 @@ def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_laye
 	train(model, dataset, epochs, patience=5, output_path=output_path)
 
 
-def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True,output_path='weights/GNN'):
+def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layers=2, max_samples=None, method='pixel', use_cache=True,output_path='weights/GNN',dataset_path='dataset',patience=5, grayscale=False):
 	# Local import to avoid import-time segfault from torch_scatter
 	from models.GNN import CombinedModel, GraphNet
 	# Graph dataset produces tuples (x, pos, edge_index), label
@@ -37,10 +37,11 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	
 	# Use optimized dataset loader with caching
 	original_dataset = OptimizedDatasetLoader(
-		dataset_path='dataset', 
+		dataset_path=dataset_path, 
 		resize_value=resize_value,
 		method=method,  # 'pixel', 'superpixel', or 'patch'
-		use_cache=use_cache
+		use_cache=use_cache,
+		grayscale=grayscale
 	)
 	
 	# Get number of classes before potentially creating subset
@@ -57,7 +58,7 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	else:
 		dataset = original_dataset
 	
-	dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=lambda batch: batch[0])
+	dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: batch[0])
 	
 	# Adjust num_nodes based on method
 	if method == 'pixel':
@@ -69,14 +70,17 @@ def train_GNN(epochs=30, channels=3, resize_value=64, batch_size=8, hidden_layer
 	else:
 		num_nodes = resize_value * resize_value
 	
-	graph_net = GraphNet(num_local_features=3, space_dim=2, out_channels=1, n_blocks=3)
+	# Set num_local_features based on grayscale parameter
+	num_local_features = 1 if grayscale else 3
+	
+	graph_net = GraphNet(num_local_features=num_local_features, space_dim=2, out_channels=1, n_blocks=3)
 	model = CombinedModel(graph_net=graph_net, num_nodes=num_nodes, classes=num_classes)
 	
-	print(f"Training GNN with {method} method, {num_nodes} nodes")
-	train(model, dataloader, epochs, patience=5, output_path=output_path)
+	print(f"Training GNN with {method} method, {num_nodes} nodes, {num_local_features} local features")
+	train(model, dataloader, epochs, patience=patience, output_path=output_path)
 
 if __name__ == '__main__':
 	print('start')
 	# Example GNN inference (ensure weights exist under weights/GNN/)
 	#train_MLP(epochs=100, resize_value=128,hidden_layers=5, output_path='weights/MLP/dim128_5hidden_dim')
-	train_GNN(epochs=100, resize_value=128, output_path='weights/GNN/dim128_3block')
+	train_GNN(epochs=100, patience=10, resize_value=28, output_path='weights/GNN/MNIST/dim28_3block', dataset_path='dataset/mnist', grayscale=True, max_samples=5000)
