@@ -1,0 +1,8 @@
+Training started at: 2025-08-26 14:21:32
+Epochs: 100, Patience: 5
+Output path: weights/GNN/dim28_5hidden_dim
+--------------------------------------------------
+Epoch 1/100, avg_loss=2.3206
+Epoch 1/100, needed 4.73 minutes
+Epoch 2/100, avg_loss=2.3034
+Epoch 2/100, needed 4.78 minutes

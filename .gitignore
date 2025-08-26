@@ -5,4 +5,5 @@
 *log
 __pycache__
 Graphnet/
-data/MNIST/raw
+data
+.venv

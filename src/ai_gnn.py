@@ -23,7 +23,6 @@ except Exception:
 import torch.nn as nn
 from torch_geometric.nn import MetaLayer
 from typing import Union
-from models.MLP import MLP
 
 # Definition of a MLP
 class MLP(nn.Module):
@@ -142,7 +141,7 @@ class NodeProcessor(nn.Module):
 		self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, u = None, batch = None
 	):
 		_, col = edge_index
-		out = scatter_sum(edge_attr, col, dim=0)  # aggregation
+		out = scatter_sum(edge_attr, col, dim=0, dim_size=x.size(0))  # aggregation
 		out = torch.cat([x, out], dim=-1)
 		out = self.node_processor(out)
 		out += x  # residual connection

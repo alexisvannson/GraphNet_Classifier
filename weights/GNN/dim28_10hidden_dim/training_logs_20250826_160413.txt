@@ -1,0 +1,22 @@
+Training started at: 2025-08-26 16:04:13
+Epochs: 100, Patience: 5
+Output path: weights/GNN/dim28_10hidden_dim
+--------------------------------------------------
+Epoch 1/100, avg_loss=2.3185
+Epoch 1/100, needed 1.60 minutes
+Epoch 2/100, avg_loss=2.3002
+Epoch 2/100, needed 1.73 minutes
+Epoch 3/100, avg_loss=2.3019
+Epoch 3/100, needed 1.69 minutes
+Epoch 4/100, avg_loss=2.3004
+Epoch 4/100, needed 1.74 minutes
+Epoch 5/100, avg_loss=2.3023
+Epoch 5/100, needed 1.73 minutes
+Epoch 6/100, avg_loss=2.3036
+Epoch 6/100, needed 1.72 minutes
+Epoch 7/100, avg_loss=2.3022
+Epoch 7/100, needed 1.74 minutes
+--------------------------------------------------
+Training completed at: 2025-08-26 16:16:10
+Best loss achieved: 2.3002
+Final model saved: weights/GNN/dim28_10hidden_dim/final_model.pth

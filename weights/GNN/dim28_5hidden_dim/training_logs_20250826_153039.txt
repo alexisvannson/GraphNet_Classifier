@@ -1,0 +1,4 @@
+Training started at: 2025-08-26 15:30:39
+Epochs: 100, Patience: 5
+Output path: weights/GNN/dim28_5hidden_dim
+--------------------------------------------------
