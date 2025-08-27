@@ -29,7 +29,8 @@ def image_to_graph(image, resize_value=28, diagonals=True, grayscale=True):
     H, W = resize_value, resize_value
     pos = np.array([[i, j] for i in range(H) for j in range(W)], dtype=np.float32)  # (num_nodes, 2)
 
-    # Build edge_index
+    # Build edge_index, checking if nodes already connected before adding edge
+    edge_set = set()
     edge_list = []
     for i in range(H):
         for j in range(W):
@@ -39,16 +40,110 @@ def image_to_graph(image, resize_value=28, diagonals=True, grayscale=True):
                 ni, nj = i + di, j + dj
                 if 0 <= ni < H and 0 <= nj < W:
                     nidx = ni * W + nj
-                    edge_list.append((idx, nidx))
+                    # Check if edge already exists (undirected)
+                    edge_key = (min(idx, nidx), max(idx, nidx))
+                    if edge_key not in edge_set:
+                        edge_list.append((idx, nidx))
+                        edge_set.add(edge_key)
             if diagonals:
                 for di, dj in [(-1,-1), (-1,1), (1,-1), (1,1)]:
                     ni, nj = i + di, j + dj
                     if 0 <= ni < H and 0 <= nj < W:
                         nidx = ni * W + nj
-                        edge_list.append((idx, nidx))
+                        edge_key = (min(idx, nidx), max(idx, nidx))
+                        if edge_key not in edge_set:
+                            edge_list.append((idx, nidx))
+                            edge_set.add(edge_key)
     # Convert to numpy array
     edge_index = np.array(edge_list, dtype=np.int64).T  # shape: (2, num_edges)
     return x, pos, edge_index
+
+
+# Module-level cache for edge patterns to avoid recomputation
+_EDGE_CACHE: dict[tuple[int, int, str, bool], np.ndarray] = {}
+
+def _edge_pattern_cached(height: int, width: int, connectivity: str = "4", diagonals: bool = False) -> np.ndarray:
+    """Return cached (num_edges, 2) edge array for a regular grid."""
+    key = (height, width, connectivity, diagonals)
+    if key in _EDGE_CACHE:
+        return _EDGE_CACHE[key]
+
+    nodes = np.arange(height * width).reshape(height, width)
+
+    if connectivity == "4":
+        offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    elif connectivity == "8":
+        offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        if diagonals:
+            offsets += [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    else:
+        raise ValueError(f"Unsupported connectivity: {connectivity}")
+
+    edges = []
+    for di, dj in offsets:
+        shifted = np.roll(np.roll(nodes, di, axis=0), dj, axis=1)
+        valid = np.ones_like(nodes, dtype=bool)
+        if di < 0:
+            valid[-di:, :] = False
+        elif di > 0:
+            valid[:-di, :] = False
+        if dj < 0:
+            valid[:, -dj:] = False
+        elif dj > 0:
+            valid[:, :-dj] = False
+        src = nodes[valid].ravel()
+        dst = shifted[valid].ravel()
+        pair = np.stack([np.minimum(src, dst), np.maximum(src, dst)], axis=1)
+        edges.append(pair)
+
+    if edges:
+        edge_pairs = np.vstack(edges)
+        # Remove duplicates and self-loops
+        mask = edge_pairs[:, 0] != edge_pairs[:, 1]
+        edge_pairs = edge_pairs[mask]
+        edge_pairs = np.unique(edge_pairs, axis=0)
+    else:
+        edge_pairs = np.empty((0, 2), dtype=np.int64)
+
+    _EDGE_CACHE[key] = edge_pairs
+    return edge_pairs
+
+
+def image_to_graph_pixel_optimized(image, resize_value: int = 28, connectivity: str = "4",
+                                   diagonals: bool = False, use_cache: bool = True,
+                                   grayscale: bool = True):
+    """
+    Optimized conversion of a PIL Image to (x, pos, edge_index).
+    - Vectorized edge construction with optional caching
+    - 4/8-connectivity with optional diagonals
+    - Grayscale by default (1 feature per node) for MNIST-like datasets
+    Returns:
+        x: (N, C) float32 in [0,1]
+        pos: (N, 2) float32 grid coordinates (row, col)
+        edge_index: (2, E) int64 COO undirected edges (unique)
+    """
+    img = image.resize((resize_value, resize_value))
+    if grayscale:
+        img = img.convert("L")
+        arr = np.asarray(img, dtype=np.float32) / 255.0  # (H, W)
+        x = arr.reshape(-1, 1)
+    else:
+        img = img.convert("RGB")
+        arr = np.asarray(img, dtype=np.float32) / 255.0  # (H, W, 3)
+        x = arr.reshape(-1, 3)
+
+    H, W = resize_value, resize_value
+    # Positions as (row, col)
+    rows, cols = np.meshgrid(np.arange(H, dtype=np.float32), np.arange(W, dtype=np.float32), indexing="ij")
+    pos = np.stack([rows.ravel(), cols.ravel()], axis=1)
+
+    if use_cache:
+        edge_pairs = _edge_pattern_cached(H, W, connectivity, diagonals)
+    else:
+        edge_pairs = _edge_pattern_cached(H, W, connectivity, diagonals).copy()
+
+    edge_index = edge_pairs.T.astype(np.int64)
+    return x.astype(np.float32), pos.astype(np.float32), edge_index
 
 
 

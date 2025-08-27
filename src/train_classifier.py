@@ -28,7 +28,7 @@ def train_GNN(epochs=30,resize_value=64, batch_size=8, n_blocks=2, max_samples=N
 	# Local import to avoid import-time segfault from torch_scatter
 	from ai_gnn import CombinedModel, GraphNet
 	# Graph dataset produces tuples (x, pos, edge_index), label
-	from dataloader import OptimizedDatasetLoader
+	from datasets import OptimizedDatasetLoader
 	
 	# Use optimized dataset loader with caching 
 	original_dataset = OptimizedDatasetLoader(

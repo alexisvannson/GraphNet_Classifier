@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import numpy as np
 import torch
-from image_to_graph_optimized import image_to_graph_pixel_optimized
+from convert import image_to_graph_pixel_optimized
 from torchvision import transforms
 
 class OptimizedDatasetLoader(Dataset):
