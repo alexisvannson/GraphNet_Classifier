@@ -9,7 +9,7 @@ from PIL import Image
 import argparse
 from typing import Tuple, Union, Optional
 
-# Import our models
+# Import our models 
 from ai_mlp import MLP
 from ai_gnn import GraphNet, CombinedModel
 from image_to_graph_optimized import image_to_graph_pixel_optimized
