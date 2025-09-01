@@ -5,6 +5,10 @@ import os
 import time
 from datetime import datetime
 from tqdm import tqdm
+import scipy.io
+import numpy as np
+import random
+
 
 def train(model, dataset, epochs, patience=5, output_path='weights', start_weights=None):
 	optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -82,17 +86,15 @@ def train(model, dataset, epochs, patience=5, output_path='weights', start_weigh
 		the_file.write(f"Final model saved: {final_model_path}\n")
 
 
-def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weights', log_path='train_log.txt', val_ratio=0.1, test_ratio=0.1, criterion=None, optimizer=None, random_seed=42):
+def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weights', log_path='train_log.txt', val_ratio=0.1, test_ratio=0.1, criterion=None, optimizer=None, random_seed=42, batch_size=8, show=False, to_save=True):
 	"""
-	Train a model with train/validation/test split (80/10/10), save losses per epoch, and plot/save loss curves.
+	Train a model with train/validation/test split (80/10/10)
+	 save losses per epoch, and plot/save loss curves.
 	"""
-	import torch
-	import os
-	import numpy as np
-	from datetime import datetime
+
 	import random
-	import matplotlib.pyplot as plt
 	from torch.utils.data import Subset, DataLoader
+	import numpy as np
 
 	# Set random seed for reproducibility
 	random.seed(random_seed)
@@ -114,12 +116,6 @@ def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weig
 	train_set = Subset(dataset, train_indices)
 	val_set = Subset(dataset, val_indices)
 	test_set = Subset(dataset, test_indices)
-
-	# Use same batch size as original dataset if possible
-	batch_size = getattr(dataset, 'batch_size', 8)
-	# If dataset is not a DataLoader, default to 8
-	if not isinstance(dataset, DataLoader):
-		batch_size = 8
 
 	train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 	val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
@@ -170,19 +166,37 @@ def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weig
 		avg_val_loss = epoch_val_loss / max(1, num_val_batches)
 		val_losses.append(avg_val_loss)
 
-		# Logging
-		with open(log_path, "a") as the_file:
-			the_file.write(f"Epoch {epoch+1}/{epochs}, train_loss={avg_train_loss:.4f}, val_loss={avg_val_loss:.4f}\n")
+		# Save train and val loss for this epoch in a .mtx file (append mode)
+		# Save each split's loss in its own file (one file per split)
+		train_loss_row, val_loss_row = np.array([[avg_train_loss]]), np.array([[avg_val_loss]])
+		train_loss_path, val_loss_path = os.path.join(output_path, "epoch_train_loss.mtx"), os.path.join(output_path, "epoch_val_loss.mtx")
 
-		print(f"Epoch {epoch+1}/{epochs}, train_loss={avg_train_loss:.4f}, val_loss={avg_val_loss:.4f}")
+		if epoch == 0:
+			scipy.io.mmwrite(train_loss_path, train_loss_row)
+			scipy.io.mmwrite(val_loss_path, val_loss_row)
+		else:
+			existing_train = scipy.io.mmread(train_loss_path)
+			existing_train = np.atleast_2d(existing_train)
+			combined_train = np.vstack([existing_train, train_loss_row])
+			scipy.io.mmwrite(train_loss_path, combined_train)
 
+			existing_val = scipy.io.mmread(val_loss_path)
+			existing_val = np.atleast_2d(existing_val)
+			combined_val = np.vstack([existing_val, val_loss_row])
+			scipy.io.mmwrite(val_loss_path, combined_val)
+
+
+
+		print(f"Epoch {epoch+1}/{epochs}, train_loss={avg_train_loss:.6f}, val_loss={avg_val_loss:.6f}")
+		# Plot train and val loss on the same plot
+		plot_loss_from_mtx(train_loss_path, val_loss_path, output_path, show=show, to_save=to_save)
 		# Early stopping on validation loss
 		if avg_val_loss < best_val_loss:
 			best_val_loss = avg_val_loss
 			patience_counter = 0
-			best_model_path = os.path.join(output_path, f'best_model_val_epoch{epoch+1}.pth')
-			torch.save(model.state_dict(), best_model_path)
-			print(f"Saved best model (val): {best_model_path}")
+			model_path = os.path.join(output_path, f'model_epoch{epoch+1}.pth')
+			torch.save(model.state_dict(), model_path)
+			print(f"Saved model: {model_path}")
 		else:
 			patience_counter += 1
 
@@ -201,23 +215,11 @@ def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weig
 	np.savetxt(os.path.join(output_path, "train_loss.mtx"), train_loss_arr, fmt="%.6f")
 	np.savetxt(os.path.join(output_path, "val_loss.mtx"), val_loss_arr, fmt="%.6f")
 
-	# Plot losses and save as .png and .mtx
-	plt.figure()
-	plt.plot(range(1, len(train_losses)+1), train_losses, label="Train Loss")
-	plt.plot(range(1, len(val_losses)+1), val_losses, label="Val Loss")
-	plt.xlabel("Epoch")
-	plt.ylabel("Loss")
-	plt.title("Training and Validation Loss")
-	plt.legend()
-	plt.grid(True)
-	plot_path = os.path.join(output_path, "loss_curve.png")
-	plt.savefig(plot_path)
-	plt.close()
 
 	# Save loss values for plotting in .mtx (2 columns: train, val)
 	loss_matrix = np.column_stack([train_loss_arr, val_loss_arr])
-	np.savetxt(os.path.join(output_path, "loss_curve.mtx"), loss_matrix, fmt="%.6f")
-
+	scipy.io.mmwrite(os.path.join(output_path, "loss_curve.mtx"), loss_matrix)
+	
 	# Test set evaluation
 	model.eval()
 	test_loss = 0.0
@@ -232,3 +234,31 @@ def train_with_val_test(model, dataset, epochs=30, patience=5, output_path='weig
 	with open(log_path, "a") as the_file:
 		the_file.write(f"Test loss: {avg_test_loss:.4f}\n")
 	print(f"Test loss: {avg_test_loss:.4f}")
+
+
+def plot_loss_from_mtx(train_loss_path, val_loss_path, output_path, to_save=True, show=False, figsize=(10, 6)):
+	import scipy.io
+	import matplotlib.pyplot as plt
+
+	train_loss_matrix = scipy.io.mmread(train_loss_path)
+	val_loss_matrix = scipy.io.mmread(val_loss_path)
+	
+	# Convert to 1D arrays if they're 2D
+	if train_loss_matrix.ndim > 1:
+		train_loss_matrix = train_loss_matrix.flatten()
+	if val_loss_matrix.ndim > 1:
+		val_loss_matrix = val_loss_matrix.flatten()
+	
+	plt.figure(figsize=figsize)
+	plt.plot(train_loss_matrix, label="Train Loss", linewidth=2)
+	plt.plot(val_loss_matrix, label="Val Loss", linewidth=2)
+	plt.xlabel("Epoch")
+	plt.ylabel("Loss")
+	plt.title("Training and Validation Loss")
+	plt.legend()
+	plt.grid(True, alpha=0.3)
+	if to_save:
+		plt.savefig(os.path.join(output_path, "loss_curve.png"), dpi=300, bbox_inches='tight')
+	if show:
+		plt.show()
+	plt.close()  # Close the figure to free memory

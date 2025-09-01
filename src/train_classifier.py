@@ -1,5 +1,5 @@
 from ai_mlp import MLP
-from train_model import train
+from train_model import train, train_with_val_test
 from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 from torchvision import transforms
@@ -12,15 +12,17 @@ def load_data(dataset_path, resize_value=128, batch_size=8):
     return dataloader
 
 
-def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2, output_path='weights/MLP', dataset_path='dataset'):
+def train_MLP(epochs=30, channels=3, resize_value=128, batch_size=8, hidden_layers=2, output_path='weights/MLP', dataset_path='dataset', show=False, to_save=True):
 	input_dim = channels * resize_value * resize_value 
 
-	dataset = load_data(dataset_path, resize_value, batch_size)
+	# Load the dataset directly, not as a DataLoader
+	transform = transforms.Compose([transforms.Resize((resize_value, resize_value)), transforms.ToTensor()])
+	dataset = datasets.ImageFolder(root=dataset_path, transform=transform)
 
-	num_classes = len(dataset.dataset.classes)
+	num_classes = len(dataset.classes)
 	model = MLP(in_dim=input_dim, out_dim=num_classes, hidden_layers=hidden_layers)
 	
-	train(model, dataset, epochs, patience=5, output_path=output_path)
+	train_with_val_test(model, dataset, epochs, patience=5, output_path=output_path, batch_size=batch_size, show=show, to_save=to_save)
 
 
 
@@ -65,5 +67,5 @@ def train_GNN(epochs=30,resize_value=64, batch_size=8, n_blocks=2, max_samples=N
 
 
 if __name__ == '__main__':
-	#train_MLP(epochs=100, resize_value=28,hidden_layers=5,dataset_path='data/mnist/test', output_path='weights/MLP/dim28_5hidden_dim')
-	train_GNN(epochs=100, resize_value=28, n_blocks=10, dataset_path='data/mnist/test', output_path='weights/GNN/dim28_10hidden_dim', grayscale=True)
+	train_MLP(epochs=100, resize_value=28, hidden_layers=5,dataset_path='data/mnist/test', output_path='weights/MLP/test3_mtx', show=True, to_save=True)
+	#train_GNN(epochs=100, resize_value=28, n_blocks=10, dataset_path='data/mnist/test', output_path='weights/GNN/dim28_10hidden_dim', grayscale=True)
