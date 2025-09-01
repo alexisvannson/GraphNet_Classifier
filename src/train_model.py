@@ -260,5 +260,6 @@ def plot_loss_from_mtx(train_loss_path, val_loss_path, output_path, to_save=True
 	if to_save:
 		plt.savefig(os.path.join(output_path, "loss_curve.png"), dpi=300, bbox_inches='tight')
 	if show:
-		plt.show()
+		plt.show(block=False)
+		plt.pause(0.001)  # Brief pause to allow GUI to update
 	plt.close()  # Close the figure to free memory
