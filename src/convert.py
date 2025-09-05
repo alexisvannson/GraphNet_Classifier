@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 
 
-def image_to_graph(image, resize_value=28, diagonals=True, grayscale=True):
+def image_to_graph(image, resize_value=28, npoints_of_scheme=4, grayscale=True):
     """
     Convert a PIL image to a graph edge_index (COO format) for GNNs.
     Args:
@@ -45,7 +45,7 @@ def image_to_graph(image, resize_value=28, diagonals=True, grayscale=True):
                     if edge_key not in edge_set:
                         edge_list.append((idx, nidx))
                         edge_set.add(edge_key)
-            if diagonals:
+            if npoints_of_scheme == 8:
                 for di, dj in [(-1,-1), (-1,1), (1,-1), (1,1)]:
                     ni, nj = i + di, j + dj
                     if 0 <= ni < H and 0 <= nj < W:
@@ -62,22 +62,21 @@ def image_to_graph(image, resize_value=28, diagonals=True, grayscale=True):
 # Module-level cache for edge patterns to avoid recomputation
 _EDGE_CACHE: dict[tuple[int, int, str, bool], np.ndarray] = {}
 
-def _edge_pattern_cached(height: int, width: int, connectivity: str = "4", diagonals: bool = False) -> np.ndarray:
+def _edge_pattern_cached(height: int, width: int, npoints_of_scheme: int = 4) -> np.ndarray:
     """Return cached (num_edges, 2) edge array for a regular grid."""
-    key = (height, width, connectivity, diagonals)
+    key = (height, width, npoints_of_scheme)
     if key in _EDGE_CACHE:
         return _EDGE_CACHE[key]
 
     nodes = np.arange(height * width).reshape(height, width)
 
-    if connectivity == "4":
+    if npoints_of_scheme == 4:
         offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    elif connectivity == "8":
+    elif npoints_of_scheme == 8:
         offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        if diagonals:
-            offsets += [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        offsets += [(-1, -1), (-1, 1), (1, -1), (1, 1)]
     else:
-        raise ValueError(f"Unsupported connectivity: {connectivity}")
+        raise ValueError(f"Unsupported npoints_of_scheme: {npoints_of_scheme}")
 
     edges = []
     for di, dj in offsets:
@@ -109,13 +108,13 @@ def _edge_pattern_cached(height: int, width: int, connectivity: str = "4", diago
     return edge_pairs
 
 
-def image_to_graph_pixel_optimized(image, resize_value: int = 28, connectivity: str = "4",
-                                   diagonals: bool = False, use_cache: bool = True,
+def image_to_graph_pixel_optimized(image, resize_value: int = 28, npoints_of_scheme: int = 4,
+                                   use_cache: bool = True,
                                    grayscale: bool = True):
     """
     Optimized conversion of a PIL Image to (x, pos, edge_index).
     - Vectorized edge construction with optional caching
-    - 4/8-connectivity with optional diagonals
+    - 4/8-connectivity
     - Grayscale by default (1 feature per node) for MNIST-like datasets
     Returns:
         x: (N, C) float32 in [0,1]
@@ -138,9 +137,9 @@ def image_to_graph_pixel_optimized(image, resize_value: int = 28, connectivity: 
     pos = np.stack([rows.ravel(), cols.ravel()], axis=1)
 
     if use_cache:
-        edge_pairs = _edge_pattern_cached(H, W, connectivity, diagonals)
+        edge_pairs = _edge_pattern_cached(H, W, npoints_of_scheme)
     else:
-        edge_pairs = _edge_pattern_cached(H, W, connectivity, diagonals).copy()
+        edge_pairs = _edge_pattern_cached(H, W, npoints_of_scheme).copy()
 
     edge_index = edge_pairs.T.astype(np.int64)
     return x.astype(np.float32), pos.astype(np.float32), edge_index

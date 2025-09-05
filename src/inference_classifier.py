@@ -120,7 +120,7 @@ def predict_class(logits: torch.Tensor, probabilities: torch.Tensor,
     return result
 
 
-def main():
+def run_inference_classifier():
     parser = argparse.ArgumentParser(description='Run inference with MLP or GNN models')
     parser.add_argument('--image_path', type=str, required=True, help='Path to input image')
     parser.add_argument('--model_type', type=str, choices=['mlp', 'gnn'], required=True, help='Model type')
@@ -166,4 +166,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run_inference_classifier()
